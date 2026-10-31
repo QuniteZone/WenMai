@@ -1,0 +1,354 @@
+{
+  "name": "wenmai",
+  "displayName": "文脉 · 智能写作续写",
+  "description": "中文写作专用的幽灵文本续写：停顿即自动推荐，Tab 接受；内置写作准则、文体适配与上下文感知。",
+  "version": "1.0.0",
+  "publisher": "QuniteZone",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/QuniteZone/WenMai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/QuniteZone/WenMai/issues"
+  },
+  "homepage": "https://github.com/QuniteZone/WenMai#readme",
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "writing",
+    "prose",
+    "autocomplete",
+    "ghost text",
+    "写作",
+    "续写",
+    "补全",
+    "文脉"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "wenmai.menu",
+        "title": "文脉: 打开设置菜单",
+        "category": "文脉"
+      },
+      {
+        "command": "wenmai.toggle",
+        "title": "文脉: 开启/关闭自动续写",
+        "category": "文脉"
+      },
+      {
+        "command": "wenmai.trigger",
+        "title": "文脉: 立即生成建议",
+        "category": "文脉"
+      },
+      {
+        "command": "wenmai.continueLong",
+        "title": "文脉: 长续写（插入 2~4 句）",
+        "category": "文脉"
+      },
+      {
+        "command": "wenmai.setApiKey",
+        "title": "文脉: 设置 API Key",
+        "category": "文脉"
+      },
+      {
+        "command": "wenmai.setGenre",
+        "title": "文脉: 选择文体",
+        "category": "文脉"
+      },
+      {
+        "command": "wenmai.setRules",
+        "title": "文脉: 设置写作准则",
+        "category": "文脉"
+      },
+      {
+        "command": "wenmai.showPrompt",
+        "title": "文脉: 查看当前提示词",
+        "category": "文脉"
+      },
+      {
+        "command": "wenmai.acceptLocalFix",
+        "title": "文脉: 应用本地格式修正",
+        "category": "文脉"
+      },
+      {
+        "command": "wenmai.dismissLocalFix",
+        "title": "文脉: 忽略本地格式修正",
+        "category": "文脉"
+      },
+      {
+        "command": "wenmai.showLog",
+        "title": "文脉: 打开日志",
+        "category": "文脉"
+      },
+      {
+        "command": "wenmai.stats",
+        "title": "文脉: 查看统计",
+        "category": "文脉"
+      },
+      {
+        "command": "wenmai.clearCache",
+        "title": "文脉: 清空补全缓存",
+        "category": "文脉"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "wenmai.continueLong",
+        "key": "ctrl+alt+enter",
+        "mac": "cmd+alt+enter",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "wenmai.trigger",
+        "key": "ctrl+alt+space",
+        "mac": "cmd+alt+space",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "wenmai.showLog",
+        "key": "ctrl+alt+l",
+        "mac": "cmd+alt+l",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "wenmai.acceptLocalFix",
+        "key": "tab",
+        "when": "editorTextFocus && wenmai.localFixPending && !editorTabMovesFocus && !inlineSuggestionVisible && !suggestWidgetVisible && !inSnippetMode"
+      },
+      {
+        "command": "wenmai.acceptLocalFix",
+        "key": "ctrl+alt+.",
+        "mac": "cmd+alt+.",
+        "when": "editorTextFocus && wenmai.localFixPending"
+      }
+    ],
+    "configuration": {
+      "title": "文脉 · 智能写作续写",
+      "properties": {
+        "wenmai.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "自动续写总开关。关闭后不再产生任何请求。"
+        },
+        "wenmai.triggerOnCursorMove": {
+          "type": "boolean",
+          "default": true,
+          "description": "只移动光标（不输入）并停顿后，也自动请求续写。关闭后仅在输入或手动触发时出现建议。"
+        },
+        "wenmai.genre": {
+          "type": "string",
+          "enum": [
+            "自动",
+            "通用",
+            "公文",
+            "学术",
+            "小说",
+            "新媒体",
+            "商务"
+          ],
+          "enumDescriptions": [
+            "根据最近上下文自动判断文体",
+            "中性、通用的书面表达",
+            "通知、报告、请示、方案等",
+            "论文、研究报告、文献综述等",
+            "小说、散文、故事等叙事文本",
+            "公众号、短视频文案、社交媒体",
+            "邮件、汇报、商业方案等"
+          ],
+          "default": "自动",
+          "description": "写作文体。不同文体使用不同的续写准则。"
+        },
+        "wenmai.writingRules": {
+          "type": "string",
+          "default": "",
+          "description": "追加在内置写作准则之后的自定义要求，例如：不要使用第一人称；每段不超过三句；避免感叹号。留空则不追加。"
+        },
+        "wenmai.useGuidelines": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否把内置写作准则发送给模型。关闭后更像原始 FIM 续写，速度略快，但文风控制变弱。"
+        },
+        "wenmai.model": {
+          "type": "string",
+          "default": "deepseek-flash",
+          "description": "FIM 补全使用的模型名。"
+        },
+        "wenmai.baseUrl": {
+          "type": "string",
+          "default": "https://api.deepseek.com/beta",
+          "description": "FIM 端点 baseUrl，扩展会请求 {baseUrl}/completions。不要以斜杠结尾。"
+        },
+        "wenmai.chatUrl": {
+          "type": "string",
+          "default": "https://api.deepseek.com/chat/completions",
+          "description": "长续写与 Chat 兜底使用的端点。只填域名时会自动补 /chat/completions；带路径的代理地址保持原样。"
+        },
+        "wenmai.chatModel": {
+          "type": "string",
+          "default": "",
+          "description": "长续写使用的模型。留空表示与补全模型相同；若补全模型不支持 Chat，可在这里单独指定。"
+        },
+        "wenmai.maxSentences": {
+          "type": "number",
+          "default": 2,
+          "minimum": 1,
+          "maximum": 6,
+          "description": "单次幽灵文本最多几句。1 最快，2 适合大多数写作场景。"
+        },
+        "wenmai.maxChars": {
+          "type": "number",
+          "default": 220,
+          "minimum": 40,
+          "maximum": 2000,
+          "description": "单次幽灵文本的最大字符数，超过后自动截断到最近的完整句。"
+        },
+        "wenmai.maxTokens": {
+          "type": "number",
+          "default": 384,
+          "minimum": 16,
+          "maximum": 1024,
+          "description": "单次请求最多生成的 token 数。deepseek-flash 等模型会先消耗隐藏推理 token，预算太小会导致正文为空、幽灵文本不出现；建议 256~512。空响应时会自动放大预算重试一次。"
+        },
+        "wenmai.temperature": {
+          "type": "number",
+          "default": 0.3,
+          "minimum": 0,
+          "maximum": 1.5,
+          "description": "采样温度。越低越稳、越贴合原文；越高越发散。"
+        },
+        "wenmai.prefixChars": {
+          "type": "number",
+          "default": 1500,
+          "minimum": 200,
+          "maximum": 20000,
+          "description": "发送给模型的光标前上下文长度。默认 1500 字，兼顾近处文气与整体走向。光标后的文字默认不发送。"
+        },
+        "wenmai.longPrefixChars": {
+          "type": "number",
+          "default": 6000,
+          "minimum": 500,
+          "maximum": 30000,
+          "description": "长续写命令使用的光标前上下文长度。"
+        },
+        "wenmai.useSuffix": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否在 Chat 兜底与长续写时参考光标后的文字。行内续写（FIM）永远只发送光标前的文本——suffix 是“填空”语义，后文完整时模型会返回 0 token 的空结果。默认关闭；只认你在这里显式写入的值。"
+        },
+        "wenmai.suffixChars": {
+          "type": "number",
+          "default": 500,
+          "minimum": 0,
+          "maximum": 4000,
+          "description": "启用 suffix 时，取光标后多少字符。默认 500 字，足够看到接下来一段的走向。"
+        },
+        "wenmai.debounceMs": {
+          "type": "number",
+          "default": 220,
+          "minimum": 0,
+          "maximum": 2000,
+          "description": "停止输入多久后发起请求。越大越省调用，越小越灵敏。"
+        },
+        "wenmai.minIntervalMs": {
+          "type": "number",
+          "default": 120,
+          "minimum": 0,
+          "maximum": 5000,
+          "description": "两次真实请求之间的最小间隔，防止快速连击造成请求风暴。"
+        },
+        "wenmai.minPromptChars": {
+          "type": "number",
+          "default": 6,
+          "minimum": 1,
+          "maximum": 200,
+          "description": "光标前有效文字少于该长度时不补全。"
+        },
+        "wenmai.timeoutMs": {
+          "type": "number",
+          "default": 12000,
+          "minimum": 2000,
+          "maximum": 60000,
+          "description": "单次请求超时时间。"
+        },
+        "wenmai.stream": {
+          "type": "boolean",
+          "default": true,
+          "description": "使用流式响应，凑够完整句子就提前结束请求，显著降低等待时间。"
+        },
+        "wenmai.proseOnly": {
+          "type": "boolean",
+          "default": true,
+          "description": "在代码块、行内代码、frontmatter、URL、HTML 标签/脚本/注释、LaTeX/Typst 公式与代码环境内不触发补全。关闭后所有场景都会请求。"
+        },
+        "wenmai.autoFix": {
+          "type": "boolean",
+          "default": true,
+          "description": "自动修正常见的 Markdown/LaTeX 格式问题：标题与列表缺空格、中文半角标点、重复标点、LaTeX 环境名与公式标点。只在出错字符上显示删除线并就地预览替换文本，其余内容不动；Tab 应用（与 AI 续写一致），也可用 Ctrl+Alt+.。不请求 API，也不需要 API Key。"
+        },
+        "wenmai.fixCjkLatinSpacing": {
+          "type": "boolean",
+          "default": true,
+          "description": "自动在中文与英文字母之间补一个空格，例如“使用VS Code写作”→“使用 VS Code 写作”。只在本地修正命中时生效。"
+        },
+        "wenmai.languages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "markdown",
+            "mdx",
+            "plaintext",
+            "quarto",
+            "rmd",
+            "latex",
+            "typst",
+            "html",
+            "asciidoc",
+            "restructuredtext"
+          ],
+          "description": "启用自动续写的语言 ID 列表。留空表示所有语言。"
+        },
+        "wenmai.cacheSize": {
+          "type": "number",
+          "default": 40,
+          "minimum": 0,
+          "maximum": 500,
+          "description": "补全结果缓存条数。相同上下文与配置会直接复用，0 表示关闭缓存。"
+        },
+        "wenmai.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "在状态栏显示文脉状态与延迟。"
+        },
+        "wenmai.logLevel": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error",
+            "off"
+          ],
+          "default": "info",
+          "description": "输出面板的日志级别。"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "test": "node test-core.js",
+    "test:provider": "node test-provider.js",
+    "test:live": "node test-live.js"
+  }
+}

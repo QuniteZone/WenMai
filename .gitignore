@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output
+*.vsix
+
+# Logs and local artifacts
+*.log
+logs/
+
+# Editor / OS noise
+.vscode/*
+!.vscode/launch.json
+.DS_Store
+Thumbs.db
+
+# Local secrets (never commit these)
+.env
+.env.*
+*.pem
+*.key

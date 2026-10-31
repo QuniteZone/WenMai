@@ -1,0 +1,10 @@
+.vscode/**
+.gitignore
+.vscodeignore
+install.ps1
+test-core.js
+test-provider.js
+test-live.js
+*.md
+!README.md
+LICENSE

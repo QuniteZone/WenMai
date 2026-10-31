@@ -19,3 +19,6 @@ Thumbs.db
 .env.*
 *.pem
 *.key
+
+# Local blog draft, not part of the extension repository
+CSDN-wenmai.md

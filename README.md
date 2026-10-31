@@ -501,7 +501,6 @@ wenmai/
 ├── test-provider.js      provider 全链路冒烟测试（mock vscode + 本地 SSE）
 ├── test-live.js          真实 API 联调（需 WENMAI_API_KEY）
 ├── install.ps1           复制安装到扩展目录
-├── CSDN-wenmai.md         CSDN 发布用博客稿
 ├── .gitignore
 ├── .vscodeignore
 ├── LICENSE
